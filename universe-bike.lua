@@ -1,5 +1,5 @@
 -- =====================================================================
--- UNIVERSE BIKE // ULTRA-SAFE ANTI-CRASH EDITION
+-- UNIVERSE BIKE // FORCED THROTTLE & TELEPORT EDITION
 -- Target Position: Vector3.new(5344.32, 3.5, 493.93)
 -- Author: NostraTeam
 -- =====================================================================
@@ -19,17 +19,12 @@ local HasTeleported = false
 local Connection = nil
 local RespawnConnection = nil
 
--- Performance & Cache Variables
-local CachedVehicle = nil
-local CachedSeat = nil
-local LastSearchTick = 0
-
 -- Customization Variables
 local ToggleKey = Enum.KeyCode.K
 local IsListeningForKey = false
 local StartTime = tick()
 
--- Safe GUI Initialization (Using PlayerGui to prevent anti-cheat crashes)
+-- Safe GUI Initialization
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "UB_SafeSystem"
 ScreenGui.ResetOnSpawn = false
@@ -121,7 +116,7 @@ MainText.BackgroundTransparency = 1
 MainText.Position = UDim2.new(0, 32, 0, 9)
 MainText.Size = UDim2.new(1, -40, 0, 16)
 MainText.Font = Enum.Font.GothamBold
-MainText.Text = "ANTI-CRASH ACTIVE"
+MainText.Text = "AUTO-DRIVE: ACTIVE"
 MainText.TextColor3 = Color3.fromRGB(240, 242, 250)
 MainText.TextSize = 11
 MainText.TextXAlignment = Enum.TextXAlignment.Left
@@ -132,7 +127,7 @@ SubText.BackgroundTransparency = 1
 SubText.Position = UDim2.new(0, 32, 0, 26)
 SubText.Size = UDim2.new(1, -40, 0, 16)
 SubText.Font = Enum.Font.Gotham
-SubText.Text = "Waiting for stabilization..."
+SubText.Text = "Initializing throttle..."
 SubText.TextColor3 = Color3.fromRGB(120, 125, 145)
 SubText.TextSize = 10
 SubText.TextXAlignment = Enum.TextXAlignment.Left
@@ -168,48 +163,35 @@ local KeybindCorner = Instance.new("UICorner")
 KeybindCorner.CornerRadius = UDim.new(0, 6)
 KeybindCorner.Parent = KeybindBtn
 
--- Vehicle Caching Logic
-local function getVehicleModel()
+-- Direct Vehicle & Seat Detectors
+local function getCurrentSeat()
     local char = LocalPlayer.Character
-    if not char then return nil end
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if humanoid and humanoid.SeatPart then
-        CachedVehicle = humanoid.SeatPart.Parent
-        return CachedVehicle
-    end
-    
-    if CachedVehicle and CachedVehicle.Parent then
-        return CachedVehicle
-    end
-
-    if tick() - LastSearchTick > 1 then
-        LastSearchTick = tick()
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            for _, obj in ipairs(workspace:GetDescendants()) do
-                if obj:IsA("Model") and (obj:FindFirstChildOfClass("VehicleSeat") or obj:FindFirstChildOfClass("Seat")) then
-                    local primary = obj.PrimaryPart or obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChildWhichIsA("BasePart")
-                    if primary and (primary.Position - hrp.Position).Magnitude < 35 then
-                        CachedVehicle = obj
-                        return obj
-                    end
-                end
-            end
+    if char then
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid and humanoid.SeatPart then
+            return humanoid.SeatPart
         end
     end
     return nil
 end
 
-local function getVehicleSeat()
-    local char = LocalPlayer.Character
-    if not char then return nil end
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if humanoid and humanoid.SeatPart and humanoid.SeatPart:IsA("VehicleSeat") then
-        CachedSeat = humanoid.SeatPart
-        return CachedSeat
+local function getVehicleModel()
+    local seat = getCurrentSeat()
+    if seat then
+        return seat.Parent
     end
-    if CachedSeat and CachedSeat.Parent then
-        return CachedSeat
+    local char = LocalPlayer.Character
+    if char then
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            for _, obj in ipairs(workspace:GetDescendants()) do
+                if obj:IsA("VehicleSeat") or obj:IsA("Seat") then
+                    if (obj.Position - hrp.Position).Magnitude < 30 then
+                        return obj.Parent
+                    end
+                end
+            end
+        end
     end
     return nil
 end
@@ -225,15 +207,18 @@ local function Shutdown()
         RespawnConnection = nil
     end
     pcall(function()
-        local seat = getVehicleSeat()
-        if seat then seat.Throttle = 0 end
+        local seat = getCurrentSeat()
+        if seat and seat:IsA("VehicleSeat") then 
+            seat.Throttle = 0 
+            seat.ThrottleFloat = 0
+        end
     end)
     ScreenGui:Destroy()
 end
 
 CloseBtn.MouseButton1Click:Connect(Shutdown)
 
--- Safe Teleport with delay to prevent kicks
+-- Teleport Handler
 local function TryTeleport()
     if HasTeleported then return end
     local vehicle = getVehicleModel()
@@ -254,7 +239,7 @@ local function TryTeleport()
             end
         end)
         HasTeleported = true
-        SubText.Text = "System active & stable"
+        SubText.Text = "Teleported & Driving..."
     end
 end
 
@@ -270,10 +255,9 @@ task.spawn(function()
     end
 end)
 
--- Main Loop with Safety Buffer
+-- Forced Driving Mechanics
 task.spawn(function()
-    task.wait(2.0) -- Wait 2 seconds on execution to bypass anti-cheat startup checks
-    SubText.Text = "Scanning vehicle..."
+    task.wait(1.5)
     
     Connection = RunService.Heartbeat:Connect(function()
         if SystemActive then
@@ -282,9 +266,11 @@ task.spawn(function()
             end
             
             pcall(function()
-                local seat = getVehicleSeat()
-                if seat then 
-                    seat.Throttle = 1 
+                local seat = getCurrentSeat()
+                if seat and seat:IsA("VehicleSeat") then
+                    -- Direct Seat Acceleration (Bypasses Virtual Inputs)
+                    seat.Throttle = 1
+                    seat.ThrottleFloat = 1
                 end
             end)
         end
@@ -293,9 +279,7 @@ end)
 
 RespawnConnection = LocalPlayer.CharacterAdded:Connect(function()
     HasTeleported = false
-    CachedVehicle = nil
-    CachedSeat = nil
-    SubText.Text = "Re-syncing..."
+    SubText.Text = "Re-syncing vehicle..."
     task.wait(1.5)
 end)
 
@@ -306,7 +290,7 @@ local function ToggleState()
         HasTeleported = false
         StateBadge.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
         StatusStroke.Color = Color3.fromRGB(138, 43, 226)
-        MainText.Text = "ANTI-CRASH ACTIVE"
+        MainText.Text = "AUTO-DRIVE: ACTIVE"
         MainText.TextColor3 = Color3.fromRGB(240, 242, 250)
         SubText.Text = "System resumed"
     else
@@ -317,8 +301,11 @@ local function ToggleState()
         SubText.Text = "Paused by user"
 
         pcall(function()
-            local seat = getVehicleSeat()
-            if seat then seat.Throttle = 0 end
+            local seat = getCurrentSeat()
+            if seat and seat:IsA("VehicleSeat") then 
+                seat.Throttle = 0 
+                seat.ThrottleFloat = 0
+            end
         end)
     end
 end
