@@ -1,5 +1,5 @@
 -- =====================================================================
--- UNIVERSE BIKE // FORCED THROTTLE & TELEPORT EDITION
+-- UNIVERSE BIKE // FORCED CFRAME DRIVE EDITION
 -- Target Position: Vector3.new(5344.32, 3.5, 493.93)
 -- Author: NostraTeam
 -- =====================================================================
@@ -116,7 +116,7 @@ MainText.BackgroundTransparency = 1
 MainText.Position = UDim2.new(0, 32, 0, 9)
 MainText.Size = UDim2.new(1, -40, 0, 16)
 MainText.Font = Enum.Font.GothamBold
-MainText.Text = "AUTO-DRIVE: ACTIVE"
+MainText.Text = "FORCED DRIVE: ACTIVE"
 MainText.TextColor3 = Color3.fromRGB(240, 242, 250)
 MainText.TextSize = 11
 MainText.TextXAlignment = Enum.TextXAlignment.Left
@@ -127,7 +127,7 @@ SubText.BackgroundTransparency = 1
 SubText.Position = UDim2.new(0, 32, 0, 26)
 SubText.Size = UDim2.new(1, -40, 0, 16)
 SubText.Font = Enum.Font.Gotham
-SubText.Text = "Initializing throttle..."
+SubText.Text = "CFrame force engine ready"
 SubText.TextColor3 = Color3.fromRGB(120, 125, 145)
 SubText.TextSize = 10
 SubText.TextXAlignment = Enum.TextXAlignment.Left
@@ -163,32 +163,21 @@ local KeybindCorner = Instance.new("UICorner")
 KeybindCorner.CornerRadius = UDim.new(0, 6)
 KeybindCorner.Parent = KeybindBtn
 
--- Direct Vehicle & Seat Detectors
-local function getCurrentSeat()
-    local char = LocalPlayer.Character
-    if char then
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if humanoid and humanoid.SeatPart then
-            return humanoid.SeatPart
-        end
-    end
-    return nil
-end
-
+-- Vehicle Detector
 local function getVehicleModel()
-    local seat = getCurrentSeat()
-    if seat then
-        return seat.Parent
-    end
     local char = LocalPlayer.Character
-    if char then
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            for _, obj in ipairs(workspace:GetDescendants()) do
-                if obj:IsA("VehicleSeat") or obj:IsA("Seat") then
-                    if (obj.Position - hrp.Position).Magnitude < 30 then
-                        return obj.Parent
-                    end
+    if not char then return nil end
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if humanoid and humanoid.SeatPart then
+        return humanoid.SeatPart.Parent
+    end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") and (obj:FindFirstChildOfClass("VehicleSeat") or obj:FindFirstChildOfClass("Seat")) then
+                local primary = obj.PrimaryPart or obj:FindFirstChild("HumanoidRootPart") or obj:FindFirstChildWhichIsA("BasePart")
+                if primary and (primary.Position - hrp.Position).Magnitude < 35 then
+                    return obj
                 end
             end
         end
@@ -206,13 +195,6 @@ local function Shutdown()
         RespawnConnection:Disconnect()
         RespawnConnection = nil
     end
-    pcall(function()
-        local seat = getCurrentSeat()
-        if seat and seat:IsA("VehicleSeat") then 
-            seat.Throttle = 0 
-            seat.ThrottleFloat = 0
-        end
-    end)
     ScreenGui:Destroy()
 end
 
@@ -239,7 +221,7 @@ local function TryTeleport()
             end
         end)
         HasTeleported = true
-        SubText.Text = "Teleported & Driving..."
+        SubText.Text = "Forced drive active!"
     end
 end
 
@@ -255,7 +237,7 @@ task.spawn(function()
     end
 end)
 
--- Forced Driving Mechanics
+-- Forced CFrame Movement Loop (Bypasses broken throttle systems)
 task.spawn(function()
     task.wait(1.5)
     
@@ -263,16 +245,16 @@ task.spawn(function()
         if SystemActive then
             if not HasTeleported then
                 TryTeleport()
-            end
-            
-            pcall(function()
-                local seat = getCurrentSeat()
-                if seat and seat:IsA("VehicleSeat") then
-                    -- Direct Seat Acceleration (Bypasses Virtual Inputs)
-                    seat.Throttle = 1
-                    seat.ThrottleFloat = 1
+            else
+                local vehicle = getVehicleModel()
+                if vehicle then
+                    pcall(function()
+                        -- Continuously push forward along the look vector (-Z axis)
+                        local currentPivot = vehicle:GetPivot()
+                        vehicle:PivotTo(currentPivot * CFrame.new(0, 0, -0.6)) -- Speed adjustment
+                    end)
                 end
-            end)
+            end
         end
     end)
 end)
@@ -290,7 +272,7 @@ local function ToggleState()
         HasTeleported = false
         StateBadge.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
         StatusStroke.Color = Color3.fromRGB(138, 43, 226)
-        MainText.Text = "AUTO-DRIVE: ACTIVE"
+        MainText.Text = "FORCED DRIVE: ACTIVE"
         MainText.TextColor3 = Color3.fromRGB(240, 242, 250)
         SubText.Text = "System resumed"
     else
@@ -299,14 +281,6 @@ local function ToggleState()
         MainText.Text = "SYSTEM: PAUSED"
         MainText.TextColor3 = Color3.fromRGB(150, 155, 170)
         SubText.Text = "Paused by user"
-
-        pcall(function()
-            local seat = getCurrentSeat()
-            if seat and seat:IsA("VehicleSeat") then 
-                seat.Throttle = 0 
-                seat.ThrottleFloat = 0
-            end
-        end)
     end
 end
 
