@@ -1,5 +1,5 @@
 -- =====================================================================
--- UNIVERSE BIKE // ULTIMATE PILOT SYSTEM (ANTI-GLITCH & STABLE)
+-- UNIVERSE BIKE // LIGHTWEIGHT STABLE EDITION
 -- Target Position: Vector3.new(5344.32, 3.5, 493.93)
 -- Author: NostraTeam
 -- =====================================================================
@@ -11,9 +11,7 @@ local TARGET_CFRAME = CFrame.new(TARGET_POSITION) * CFrame.Angles(0, math.rad(-9
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 local RunService = game:GetService("RunService")
-local VirtualUser = game:GetService("VirtualUser")
 
 local LocalPlayer = Players.LocalPlayer
 local SystemActive = true
@@ -31,13 +29,17 @@ local ToggleKey = Enum.KeyCode.K
 local IsListeningForKey = false
 local StartTime = tick()
 
--- GUI Initialization
+-- Safe GUI Initialization (No gethui dependency to prevent crashes)
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UB_CoreSystemStable"
+ScreenGui.Name = "UB_CoreSystemLight"
 ScreenGui.ResetOnSpawn = false
 
-if gethui then
-    ScreenGui.Parent = gethui()
+if syn and syn.protect_gui then
+    syn.protect_gui(ScreenGui)
+    ScreenGui.Parent = CoreGui
+elseif protectgui then
+    protectgui(ScreenGui)
+    ScreenGui.Parent = CoreGui
 else
     ScreenGui.Parent = CoreGui
 end
@@ -128,7 +130,7 @@ MainText.BackgroundTransparency = 1
 MainText.Position = UDim2.new(0, 32, 0, 9)
 MainText.Size = UDim2.new(1, -40, 0, 16)
 MainText.Font = Enum.Font.GothamBold
-MainText.Text = "STABLE & ANTI-GLITCH"
+MainText.Text = "SAFE & LIGHTWEIGHT"
 MainText.TextColor3 = Color3.fromRGB(240, 242, 250)
 MainText.TextSize = 11
 MainText.TextXAlignment = Enum.TextXAlignment.Left
@@ -139,7 +141,7 @@ SubText.BackgroundTransparency = 1
 SubText.Position = UDim2.new(0, 32, 0, 26)
 SubText.Size = UDim2.new(1, -40, 0, 16)
 SubText.Font = Enum.Font.Gotham
-SubText.Text = "Physics velocity locked"
+SubText.Text = "Anti-Crash Mode Active"
 SubText.TextColor3 = Color3.fromRGB(120, 125, 145)
 SubText.TextSize = 10
 SubText.TextXAlignment = Enum.TextXAlignment.Left
@@ -175,7 +177,7 @@ local KeybindCorner = Instance.new("UICorner")
 KeybindCorner.CornerRadius = UDim.new(0, 6)
 KeybindCorner.Parent = KeybindBtn
 
--- Optimized Vehicle Caching Logic
+-- Vehicle Caching Logic
 local function getVehicleModel()
     local char = LocalPlayer.Character
     if not char then return nil end
@@ -232,7 +234,6 @@ local function Shutdown()
         RespawnConnection = nil
     end
     pcall(function()
-        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.W, false, game)
         local seat = getVehicleSeat()
         if seat then seat.Throttle = 0 end
     end)
@@ -241,7 +242,7 @@ end
 
 CloseBtn.MouseButton1Click:Connect(Shutdown)
 
--- Safe Teleport Handler with Physics & Velocity Reset (Prevents Ground Glitch)
+-- Safe Teleport Handler (No VirtualInputManager to prevent crashes)
 local function TryTeleport()
     if HasTeleported then return end
     local vehicle = getVehicleModel()
@@ -249,7 +250,6 @@ local function TryTeleport()
         pcall(function()
             if vehicle:IsA("Model") then
                 vehicle:PivotTo(TARGET_CFRAME)
-                -- Reset assembly velocities to prevent falling through floor
                 for _, part in ipairs(vehicle:GetDescendants()) do
                     if part:IsA("BasePart") then
                         part.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
@@ -263,21 +263,9 @@ local function TryTeleport()
             end
         end)
         HasTeleported = true
-        SubText.Text = "Stable & Anti-Glitch Active"
+        SubText.Text = "Teleported Safely"
     end
 end
-
--- Anti-AFK & Latency Shield
-task.spawn(function()
-    while true do
-        task.wait(90)
-        pcall(function()
-            VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-            task.wait(0.3)
-            VirtualUser:Button2Up(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
-        end)
-    end
-end)
 
 -- Runtime Timer Updater
 task.spawn(function()
@@ -291,7 +279,7 @@ task.spawn(function()
     end
 end)
 
--- Optimized Heartbeat Loop
+-- Lightweight Throttle Loop (Direct Vehicle Seat Control - Undetected)
 local ThrottleCounter = 0
 Connection = RunService.Heartbeat:Connect(function()
     if SystemActive then
@@ -302,7 +290,6 @@ Connection = RunService.Heartbeat:Connect(function()
         ThrottleCounter = ThrottleCounter + 1
         if ThrottleCounter % 2 == 0 then
             pcall(function()
-                VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.W, false, game)
                 local seat = getVehicleSeat()
                 if seat then 
                     seat.Throttle = 1 
@@ -326,9 +313,9 @@ local function ToggleState()
         HasTeleported = false
         StateBadge.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
         StatusStroke.Color = Color3.fromRGB(138, 43, 226)
-        MainText.Text = "STABLE & ANTI-GLITCH"
+        MainText.Text = "SAFE & LIGHTWEIGHT"
         MainText.TextColor3 = Color3.fromRGB(240, 242, 250)
-        SubText.Text = "System resumed safely"
+        SubText.Text = "System resumed"
     else
         StateBadge.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
         StatusStroke.Color = Color3.fromRGB(50, 52, 65)
@@ -337,7 +324,6 @@ local function ToggleState()
         SubText.Text = "Paused by user"
 
         pcall(function()
-            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.W, false, game)
             local seat = getVehicleSeat()
             if seat then seat.Throttle = 0 end
         end)
@@ -355,7 +341,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
             ToggleKey = input.KeyCode
             KeybindBtn.Text = "Key: [ " .. tostring(ToggleKey.Name) .. " ]"
             IsListeningForKey = false
-            SubText.Text = "Key updated to " .. tostring(ToggleKey.Name)
+            SubText.Text = "Key updated"
         end
         return
     end
