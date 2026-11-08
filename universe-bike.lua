@@ -1,10 +1,10 @@
 -- =====================================================================
--- UNIVERSE BIKE // ULTIMATE PILOT SYSTEM (SECURE & OPTIMIZED)
--- Target Position: Vector3.new(5344.32, 0.8, 493.93)
+-- UNIVERSE BIKE // ULTIMATE PILOT SYSTEM (ANTI-GLITCH & STABLE)
+-- Target Position: Vector3.new(5344.32, 3.5, 493.93)
 -- Author: NostraTeam
 -- =====================================================================
 
-local TARGET_POSITION = Vector3.new(5344.32, 0.8, 493.93)
+local TARGET_POSITION = Vector3.new(5344.32, 3.5, 493.93)
 local TARGET_CFRAME = CFrame.new(TARGET_POSITION) * CFrame.Angles(0, math.rad(-90), 0)
 
 -- Services
@@ -31,9 +31,9 @@ local ToggleKey = Enum.KeyCode.K
 local IsListeningForKey = false
 local StartTime = tick()
 
--- GUI Initialization (Clean Slate Style)
+-- GUI Initialization
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UB_CoreSystemOptimized"
+ScreenGui.Name = "UB_CoreSystemStable"
 ScreenGui.ResetOnSpawn = false
 
 if gethui then
@@ -128,7 +128,7 @@ MainText.BackgroundTransparency = 1
 MainText.Position = UDim2.new(0, 32, 0, 9)
 MainText.Size = UDim2.new(1, -40, 0, 16)
 MainText.Font = Enum.Font.GothamBold
-MainText.Text = "PROTECTED & OPTIMIZED"
+MainText.Text = "STABLE & ANTI-GLITCH"
 MainText.TextColor3 = Color3.fromRGB(240, 242, 250)
 MainText.TextSize = 11
 MainText.TextXAlignment = Enum.TextXAlignment.Left
@@ -139,7 +139,7 @@ SubText.BackgroundTransparency = 1
 SubText.Position = UDim2.new(0, 32, 0, 26)
 SubText.Size = UDim2.new(1, -40, 0, 16)
 SubText.Font = Enum.Font.Gotham
-SubText.Text = "Anti-Ban & Anti-DDoS Shield Active"
+SubText.Text = "Physics velocity locked"
 SubText.TextColor3 = Color3.fromRGB(120, 125, 145)
 SubText.TextSize = 10
 SubText.TextXAlignment = Enum.TextXAlignment.Left
@@ -175,7 +175,7 @@ local KeybindCorner = Instance.new("UICorner")
 KeybindCorner.CornerRadius = UDim.new(0, 6)
 KeybindCorner.Parent = KeybindBtn
 
--- Optimized Vehicle Caching Logic (Zero Lag)
+-- Optimized Vehicle Caching Logic
 local function getVehicleModel()
     local char = LocalPlayer.Character
     if not char then return nil end
@@ -189,7 +189,6 @@ local function getVehicleModel()
         return CachedVehicle
     end
 
-    -- Throttle workspace searches to prevent lag (Only check every 1 second if needed)
     if tick() - LastSearchTick > 1 then
         LastSearchTick = tick()
         local hrp = char:FindFirstChild("HumanoidRootPart")
@@ -242,7 +241,7 @@ end
 
 CloseBtn.MouseButton1Click:Connect(Shutdown)
 
--- Instant Teleport Handler
+-- Safe Teleport Handler with Physics & Velocity Reset (Prevents Ground Glitch)
 local function TryTeleport()
     if HasTeleported then return end
     local vehicle = getVehicleModel()
@@ -250,19 +249,28 @@ local function TryTeleport()
         pcall(function()
             if vehicle:IsA("Model") then
                 vehicle:PivotTo(TARGET_CFRAME)
+                -- Reset assembly velocities to prevent falling through floor
+                for _, part in ipairs(vehicle:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                        part.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
+                    end
+                end
             elseif vehicle:IsA("BasePart") then
                 vehicle.CFrame = TARGET_CFRAME
+                vehicle.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                vehicle.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
             end
         end)
         HasTeleported = true
-        SubText.Text = "Teleported safely!"
+        SubText.Text = "Stable & Anti-Glitch Active"
     end
 end
 
--- Anti-AFK & Anti-DDoS Latency Shield
+-- Anti-AFK & Latency Shield
 task.spawn(function()
     while true do
-        task.wait(90) -- Optimized interval to avoid overhead
+        task.wait(90)
         pcall(function()
             VirtualUser:Button2Down(Vector2.new(0,0), workspace.CurrentCamera.CFrame)
             task.wait(0.3)
@@ -283,7 +291,7 @@ task.spawn(function()
     end
 end)
 
--- Optimized Heartbeat Loop (Zero Lag Throttle)
+-- Optimized Heartbeat Loop
 local ThrottleCounter = 0
 Connection = RunService.Heartbeat:Connect(function()
     if SystemActive then
@@ -291,7 +299,6 @@ Connection = RunService.Heartbeat:Connect(function()
             TryTeleport()
         end
         
-        -- Throttled to every 2 frames for maximum performance and zero lag
         ThrottleCounter = ThrottleCounter + 1
         if ThrottleCounter % 2 == 0 then
             pcall(function()
@@ -319,7 +326,7 @@ local function ToggleState()
         HasTeleported = false
         StateBadge.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
         StatusStroke.Color = Color3.fromRGB(138, 43, 226)
-        MainText.Text = "PROTECTED & OPTIMIZED"
+        MainText.Text = "STABLE & ANTI-GLITCH"
         MainText.TextColor3 = Color3.fromRGB(240, 242, 250)
         SubText.Text = "System resumed safely"
     else
@@ -337,7 +344,6 @@ local function ToggleState()
     end
 end
 
--- Interactive Keybind Reassigner
 KeybindBtn.MouseButton1Click:Connect(function()
     IsListeningForKey = true
     KeybindBtn.Text = "Press any key..."
