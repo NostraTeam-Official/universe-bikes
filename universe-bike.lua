@@ -1,5 +1,5 @@
 -- =====================================================================
--- UNIVERSE BIKE // LIGHTWEIGHT STABLE EDITION
+-- UNIVERSE BIKE // ULTRA-SAFE ANTI-CRASH EDITION
 -- Target Position: Vector3.new(5344.32, 3.5, 493.93)
 -- Author: NostraTeam
 -- =====================================================================
@@ -9,11 +9,11 @@ local TARGET_CFRAME = CFrame.new(TARGET_POSITION) * CFrame.Angles(0, math.rad(-9
 
 -- Services
 local Players = game:GetService("Players")
-local CoreGui = game:GetService("CoreGui")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
 local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local SystemActive = true
 local HasTeleported = false
 local Connection = nil
@@ -29,20 +29,11 @@ local ToggleKey = Enum.KeyCode.K
 local IsListeningForKey = false
 local StartTime = tick()
 
--- Safe GUI Initialization (No gethui dependency to prevent crashes)
+-- Safe GUI Initialization (Using PlayerGui to prevent anti-cheat crashes)
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UB_CoreSystemLight"
+ScreenGui.Name = "UB_SafeSystem"
 ScreenGui.ResetOnSpawn = false
-
-if syn and syn.protect_gui then
-    syn.protect_gui(ScreenGui)
-    ScreenGui.Parent = CoreGui
-elseif protectgui then
-    protectgui(ScreenGui)
-    ScreenGui.Parent = CoreGui
-else
-    ScreenGui.Parent = CoreGui
-end
+ScreenGui.Parent = PlayerGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
@@ -130,7 +121,7 @@ MainText.BackgroundTransparency = 1
 MainText.Position = UDim2.new(0, 32, 0, 9)
 MainText.Size = UDim2.new(1, -40, 0, 16)
 MainText.Font = Enum.Font.GothamBold
-MainText.Text = "SAFE & LIGHTWEIGHT"
+MainText.Text = "ANTI-CRASH ACTIVE"
 MainText.TextColor3 = Color3.fromRGB(240, 242, 250)
 MainText.TextSize = 11
 MainText.TextXAlignment = Enum.TextXAlignment.Left
@@ -141,7 +132,7 @@ SubText.BackgroundTransparency = 1
 SubText.Position = UDim2.new(0, 32, 0, 26)
 SubText.Size = UDim2.new(1, -40, 0, 16)
 SubText.Font = Enum.Font.Gotham
-SubText.Text = "Anti-Crash Mode Active"
+SubText.Text = "Waiting for stabilization..."
 SubText.TextColor3 = Color3.fromRGB(120, 125, 145)
 SubText.TextSize = 10
 SubText.TextXAlignment = Enum.TextXAlignment.Left
@@ -242,7 +233,7 @@ end
 
 CloseBtn.MouseButton1Click:Connect(Shutdown)
 
--- Safe Teleport Handler (No VirtualInputManager to prevent crashes)
+-- Safe Teleport with delay to prevent kicks
 local function TryTeleport()
     if HasTeleported then return end
     local vehicle = getVehicleModel()
@@ -263,11 +254,11 @@ local function TryTeleport()
             end
         end)
         HasTeleported = true
-        SubText.Text = "Teleported Safely"
+        SubText.Text = "System active & stable"
     end
 end
 
--- Runtime Timer Updater
+-- Runtime Timer
 task.spawn(function()
     while task.wait(1) do
         if SystemActive then
@@ -279,16 +270,17 @@ task.spawn(function()
     end
 end)
 
--- Lightweight Throttle Loop (Direct Vehicle Seat Control - Undetected)
-local ThrottleCounter = 0
-Connection = RunService.Heartbeat:Connect(function()
-    if SystemActive then
-        if not HasTeleported then
-            TryTeleport()
-        end
-        
-        ThrottleCounter = ThrottleCounter + 1
-        if ThrottleCounter % 2 == 0 then
+-- Main Loop with Safety Buffer
+task.spawn(function()
+    task.wait(2.0) -- Wait 2 seconds on execution to bypass anti-cheat startup checks
+    SubText.Text = "Scanning vehicle..."
+    
+    Connection = RunService.Heartbeat:Connect(function()
+        if SystemActive then
+            if not HasTeleported then
+                TryTeleport()
+            end
+            
             pcall(function()
                 local seat = getVehicleSeat()
                 if seat then 
@@ -296,14 +288,15 @@ Connection = RunService.Heartbeat:Connect(function()
                 end
             end)
         end
-    end
+    end)
 end)
 
 RespawnConnection = LocalPlayer.CharacterAdded:Connect(function()
     HasTeleported = false
     CachedVehicle = nil
     CachedSeat = nil
-    SubText.Text = "Re-syncing vehicle..."
+    SubText.Text = "Re-syncing..."
+    task.wait(1.5)
 end)
 
 local function ToggleState()
@@ -313,7 +306,7 @@ local function ToggleState()
         HasTeleported = false
         StateBadge.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
         StatusStroke.Color = Color3.fromRGB(138, 43, 226)
-        MainText.Text = "SAFE & LIGHTWEIGHT"
+        MainText.Text = "ANTI-CRASH ACTIVE"
         MainText.TextColor3 = Color3.fromRGB(240, 242, 250)
         SubText.Text = "System resumed"
     else
